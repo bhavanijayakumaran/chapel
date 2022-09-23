@@ -2,8 +2,6 @@ name: CI
 
 on:
   push:
-    
-
 
 # NOTE: each job has to specify the container section in its entirety, which is
 # certainly repetetive, but the `defaults` section can't be applied and the `env`
@@ -37,11 +35,11 @@ jobs:
     # Optional (recommended) mail server password:
     password: ${{secrets.MAIL_PASSWORD}}
     # Required mail subject:
-    subject: Chapel 
+    subject: Chapel
     # Required recipients' addresses:
     to: bhavani@hpe.com
     # Required sender full name (address can be skipped):
-    from: chapel@noreply.github.com 
+    from: chapel@noreply.github.com
     # Optional plain body:
     body: Build job of ${{github.repository}} completed successfully!
     # Optional HTML body read from file:
