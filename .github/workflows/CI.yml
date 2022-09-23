@@ -2,12 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
+    
 
-
-env:
-  NIGHTLY_TEST_SETTINGS: true
 
 # NOTE: each job has to specify the container section in its entirety, which is
 # certainly repetetive, but the `defaults` section can't be applied and the `env`
@@ -18,90 +14,51 @@ env:
 #   [3] https://github.com/actions/starter-workflows/issues/162
 
 jobs:
-  make_check:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/chapel-github-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-    - uses: actions/checkout@v2
-    - name: make check
-      run: |
-        ./util/buildRelease/smokeTest chpl
-
-  make_doc:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/chapel-github-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-    - uses: actions/checkout@v2
-    - name: make dyno-docs
-      run: |
-        make dyno-docs
-    - name: make check-chpldoc && make docs
-      # Uses a quickstart config to keep it from running too long
-      run: |
-        ./util/buildRelease/smokeTest quickstart docs
-    - name: upload docs
-      uses: actions/upload-artifact@v2
-      with:
-        name: documentation
-        path: doc/html
-
-  make_mason:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/chapel-github-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-    - uses: actions/checkout@v2
-    - name: make mason
-      # Use a quickstart config to keep it from running to long
-      # While there, run a make check in that config for more coverage
-      run: |
-        ./util/buildRelease/smokeTest quickstart mason chpl
-
-  check_compiler_dyno_tests:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/chapel-github-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-    - uses: actions/checkout@v2
-    - name: make test-dyno-with-asserts
-      run: |
-        make DYNO_ENABLE_ASSERTIONS=1 test-dyno -j`util/buildRelease/chpl-make-cpu_count`
-    - name: run dyno linters
-      run: |
-        CHPL_HOME=$PWD make run-dyno-linters
-
-  check_annotations_rt_calls:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/chapel-github-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 100000
-    - name: find bad runtime calls
-      run: |
-        ./util/devel/lookForBadRTCalls
-    - name: check annotations
-      run: |
-        CHPL_LLVM=none make test-venv
-        CHPL_LLVM=none CHPL_HOME=$PWD ./util/test/run-in-test-venv.bash ./util/test/check_annotations.py
-    - name: smokeTest lint
-      run: |
-        ./util/buildRelease/smokeTest lint
+  - name: Send mail
+  if: always()
+  uses: dawidd6/action-send-mail@v3
+  with:
+    # Specify connection via URL (replaces server_address, server_port, secure,
+    # username and password)
+    #
+    # Format:
+    #
+    #  * smtp://user:password@server:port
+    #  * smtp+starttls://user:password@server:port
+    connection_url: ${{secrets.MAIL_CONNECTION}}
+    # Required mail server address if not connection_url:
+    server_address: smtp.office365.com
+    # Server port, default 25:
+    server_port: 587
+    # Optional whether this connection use TLS (default is true if server_port is 465)
+    secure: true
+    # Optional (recommended): mail server username:
+    username: ${{secrets.MAIL_USERNAME}}
+    # Optional (recommended) mail server password:
+    password: ${{secrets.MAIL_PASSWORD}}
+    # Required mail subject:
+    subject: Chapel 
+    # Required recipients' addresses:
+    to: bhavani@hpe.com
+    # Required sender full name (address can be skipped):
+    from: chapel@noreply.github.com 
+    # Optional plain body:
+    body: Build job of ${{github.repository}} completed successfully!
+    # Optional HTML body read from file:
+    html_body: file://README.html
+    # Optional carbon copy recipients:
+    #cc: kyloren@example.com,leia@example.com
+    # Optional blind carbon copy recipients:
+    #bcc: r2d2@example.com,hansolo@example.com
+    # Optional recipient of the email response:
+    #reply_to: luke@example.com
+    # Optional Message ID this message is replying to:
+    #in_reply_to: <random-luke@example.com>
+    # Optional unsigned/invalid certificates allowance:
+    ignore_cert: true
+    # Optional converting Markdown to HTML (set content_type to text/html too):
+    convert_markdown: true
+    # Optional attachments:
+    attachments: attachments.zip,git.diff,./dist/static/*.js
+    # Optional priority: 'high', 'normal' (default) or 'low'
+    priority: low
